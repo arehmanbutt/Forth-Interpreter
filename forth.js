@@ -8,7 +8,10 @@ readline.prompt();
 var inputStream = [];
 function convertInputToTokens(input) {
     var tokens = input.toString();
+    // console.log("Input", input);
+    console.log(tokens);
     var stack = tokens.split(" ");
+    // console.log("After splitting", stack);
     return stack;
 }
 var mathFunctions = {
@@ -32,7 +35,6 @@ function handleArithmetic(arr) {
         if (val in mathFunctions) {
             var second = stack.pop();
             var first = stack.pop();
-            // Convert only if both are valid numbers
             if ((typeof first === "string" && isNaN(Number(first))) ||
                 (typeof second === "string" && isNaN(Number(second)))) {
                 console.log("Invalid expression: not enough numeric operands.");
@@ -47,24 +49,48 @@ function handleArithmetic(arr) {
             stack.push(val);
         }
     }
-    return stack.map(String); // final output as string array
+    return stack.join(" ");
+}
+var wordFunctions = {
+    dup: function (x) {
+        return [x, x];
+    },
+};
+function handleWordsManipulation(arr) {
+    var stack = [];
+    for (var i = 0; i < arr.length; i++) {
+        if (arr[i] === "dup") {
+            var first = stack.pop();
+            if (isNaN(Number(first))) {
+                console.log("please enter a vlid number to be duplicated");
+                return;
+            }
+            var result = wordFunctions["dup"](first);
+            console.log("the result i am getting", result);
+            for (var _i = 0, result_1 = result; _i < result_1.length; _i++) {
+                var val = result_1[_i];
+                stack.push(val);
+            }
+            console.log("After duplication:", stack);
+        }
+        else {
+            stack.push(arr[i]);
+        }
+    }
+    return stack.join(" ");
 }
 readline.on("line", function (input) {
     if (input === "quit") {
         readline.close();
         return;
     }
-    if (input === "clear") {
-        inputStream = [];
-    }
     else {
         inputStream.push(input);
-        var stack = convertInputToTokens(inputStream);
-        console.log("Stack is: ", stack);
-        var result = handleArithmetic(stack);
-        console.log("result is: ", result);
-        if (result != null) {
-            console.log(result.join(" "));
+        var tokens = convertInputToTokens(inputStream);
+        var afterWordManipulation = handleWordsManipulation(tokens);
+        var finalResult = handleArithmetic(afterWordManipulation.split(" "));
+        if (finalResult != null) {
+            console.log(finalResult);
         }
         inputStream = [];
     }

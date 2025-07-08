@@ -10,7 +10,10 @@ let inputStream: string[] = [];
 
 function convertInputToTokens(input: string[]) {
   let tokens = input.toString();
+  // console.log("Input", input);
+  console.log(tokens);
   let stack = tokens.split(" ");
+  // console.log("After splitting", stack);
   return stack;
 }
 
@@ -31,7 +34,6 @@ const mathFunctions = {
 
 function handleArithmetic(arr: string[]) {
   let stack: (string | number)[] = [];
-
   for (let val of arr) {
     if (val in mathFunctions) {
       let second = stack.pop();
@@ -51,26 +53,51 @@ function handleArithmetic(arr: string[]) {
       stack.push(val);
     }
   }
+  return stack.join(" ");
+}
 
-  return stack.map(String);
+const wordFunctions = {
+  dup: (x: any) => {
+    return [x, x];
+  },
+};
+
+function handleWordsManipulation(arr: string[]) {
+  let stack: (string | number)[] = [];
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] === "dup") {
+      let first = stack.pop();
+      if (isNaN(Number(first))) {
+        console.log("please enter a vlid number to be duplicated");
+        return;
+      }
+      let result = wordFunctions["dup"](first);
+      console.log("the result i am getting", result);
+      for (let val of result) {
+        stack.push(val);
+      }
+      console.log("After duplication:", stack);
+    } else {
+      stack.push(arr[i]);
+    }
+  }
+  return stack.join(" ");
 }
 
 readline.on("line", (input: string) => {
   if (input === "quit") {
     readline.close();
     return;
-  }
-  if (input === "clear") {
-    inputStream = [];
   } else {
     inputStream.push(input);
-    let stack = convertInputToTokens(inputStream);
-    console.log("Stack is: ", stack);
-    let result = handleArithmetic(stack);
-    console.log("result is: ", result);
-    if (result != null) {
-      console.log(result.join(" "));
+    let tokens = convertInputToTokens(inputStream);
+    let afterWordManipulation = handleWordsManipulation(tokens);
+    let finalResult = handleArithmetic(afterWordManipulation.split(" "));
+
+    if (finalResult != null) {
+      console.log(finalResult);
     }
+
     inputStream = [];
   }
 });
