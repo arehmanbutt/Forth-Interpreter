@@ -8,15 +8,6 @@ readline.prompt();
 
 let inputStream: string[] = [];
 
-function convertInputToTokens(input: string[]) {
-  let tokens = input.toString();
-  // console.log("Input", input);
-  console.log(tokens);
-  let stack = tokens.split(" ");
-  // console.log("After splitting", stack);
-  return stack;
-}
-
 const mathFunctions = {
   "+": function (x: number, y: number) {
     return x + y;
@@ -32,53 +23,55 @@ const mathFunctions = {
   },
 };
 
-function handleArithmetic(arr: string[]) {
+function convertInputToTokens(input: string[]) {
+  let tokens = input.toString().trim();
+  let stack = tokens.split(" ");
+  return stack;
+}
+
+// Evaluation
+
+function evaluate(tokens: string[]) {
   let stack: (string | number)[] = [];
-  for (let val of arr) {
-    if (val in mathFunctions) {
-      let second = stack.pop();
-      let first = stack.pop();
-      if (
-        (typeof first === "string" && isNaN(Number(first))) ||
-        (typeof second === "string" && isNaN(Number(second)))
-      ) {
+
+  for (let token of tokens) {
+    if (!isNaN(Number(token))) {
+      stack.push(Number(token));
+    } else if (token in mathFunctions) {
+      let b = stack.pop();
+      let a = stack.pop();
+      if (typeof a !== "number" || typeof b !== "number") {
         console.log("Invalid expression: not enough numeric operands.");
         return;
       }
-      const num1 = Number(first);
-      const num2 = Number(second);
-      let result = mathFunctions[val](num1, num2);
-      stack.push(result.toString());
-    } else {
-      stack.push(val);
-    }
-  }
-  return stack.join(" ");
-}
-
-const wordFunctions = {
-  dup: (x: any) => {
-    return [x, x];
-  },
-};
-
-function handleWordsManipulation(arr: string[]) {
-  let stack: (string | number)[] = [];
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i] === "dup") {
-      let first = stack.pop();
-      if (isNaN(Number(first))) {
-        console.log("please enter a vlid number to be duplicated");
+      let result = mathFunctions[token](a, b);
+      stack.push(result);
+    } else if (token === "dup") {
+      let top = stack[stack.length - 1];
+      if (typeof top !== "number") {
+        console.log("Cannot dup non-number.");
         return;
       }
-      let result = wordFunctions["dup"](first);
-      console.log("the result i am getting", result);
-      for (let val of result) {
-        stack.push(val);
+      stack.push(top);
+    } else if (token === "swap") {
+      let b = stack.pop();
+      let a = stack.pop();
+      if (a === undefined || b === undefined) {
+        console.log("swap needs two elements.");
+        return;
       }
-      console.log("After duplication:", stack);
+      stack.push(b, a);
+    } else if (token === "drop") {
+      stack.pop();
+    } else if (token === "over") {
+      let secondLast = stack[stack.length - 2];
+      if (secondLast === undefined) {
+        console.log("swap needs two elements.");
+        return;
+      }
+      stack.push(secondLast);
     } else {
-      stack.push(arr[i]);
+      stack.push(token);
     }
   }
   return stack.join(" ");
@@ -88,16 +81,15 @@ readline.on("line", (input: string) => {
   if (input === "quit") {
     readline.close();
     return;
-  } else {
-    inputStream.push(input);
-    let tokens = convertInputToTokens(inputStream);
-    let afterWordManipulation = handleWordsManipulation(tokens);
-    let finalResult = handleArithmetic(afterWordManipulation.split(" "));
-
-    if (finalResult != null) {
-      console.log(finalResult);
-    }
-
-    inputStream = [];
   }
+
+  inputStream.push(input);
+  let tokens = convertInputToTokens(inputStream);
+
+  let result = evaluate(tokens);
+  if (result != null) {
+    console.log(result);
+  }
+
+  inputStream = [];
 });

@@ -6,14 +6,6 @@ var readline = require("readline").createInterface({
 console.log("Welcome to Forth\n\nTo close the program type 'quit'\n\n");
 readline.prompt();
 var inputStream = [];
-function convertInputToTokens(input) {
-    var tokens = input.toString();
-    // console.log("Input", input);
-    console.log(tokens);
-    var stack = tokens.split(" ");
-    // console.log("After splitting", stack);
-    return stack;
-}
 var mathFunctions = {
     "+": function (x, y) {
         return x + y;
@@ -28,53 +20,59 @@ var mathFunctions = {
         return x / y;
     },
 };
-function handleArithmetic(arr) {
+function convertInputToTokens(input) {
+    var tokens = input.toString().trim();
+    var stack = tokens.split(" ");
+    return stack;
+}
+// Evaluation
+function evaluate(tokens) {
     var stack = [];
-    for (var _i = 0, arr_1 = arr; _i < arr_1.length; _i++) {
-        var val = arr_1[_i];
-        if (val in mathFunctions) {
-            var second = stack.pop();
-            var first = stack.pop();
-            if ((typeof first === "string" && isNaN(Number(first))) ||
-                (typeof second === "string" && isNaN(Number(second)))) {
+    for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
+        var token = tokens_1[_i];
+        if (!isNaN(Number(token))) {
+            stack.push(Number(token));
+        }
+        else if (token in mathFunctions) {
+            var b = stack.pop();
+            var a = stack.pop();
+            if (typeof a !== "number" || typeof b !== "number") {
                 console.log("Invalid expression: not enough numeric operands.");
                 return;
             }
-            var num1 = Number(first);
-            var num2 = Number(second);
-            var result = mathFunctions[val](num1, num2);
-            stack.push(result.toString());
+            var result = mathFunctions[token](a, b);
+            stack.push(result);
         }
-        else {
-            stack.push(val);
-        }
-    }
-    return stack.join(" ");
-}
-var wordFunctions = {
-    dup: function (x) {
-        return [x, x];
-    },
-};
-function handleWordsManipulation(arr) {
-    var stack = [];
-    for (var i = 0; i < arr.length; i++) {
-        if (arr[i] === "dup") {
-            var first = stack.pop();
-            if (isNaN(Number(first))) {
-                console.log("please enter a vlid number to be duplicated");
+        else if (token === "dup") {
+            var top_1 = stack[stack.length - 1];
+            if (typeof top_1 !== "number") {
+                console.log("Cannot dup non-number.");
                 return;
             }
-            var result = wordFunctions["dup"](first);
-            console.log("the result i am getting", result);
-            for (var _i = 0, result_1 = result; _i < result_1.length; _i++) {
-                var val = result_1[_i];
-                stack.push(val);
+            stack.push(top_1);
+        }
+        else if (token === "swap") {
+            var b = stack.pop();
+            var a = stack.pop();
+            if (a === undefined || b === undefined) {
+                console.log("swap needs two elements.");
+                return;
             }
-            console.log("After duplication:", stack);
+            stack.push(b, a);
+        }
+        else if (token === "drop") {
+            stack.pop();
+        }
+        else if (token === "over") {
+            var secondLast = stack[stack.length - 2];
+            if (secondLast === undefined) {
+                console.log("swap needs two elements.");
+                return;
+            }
+            stack.push(secondLast);
         }
         else {
-            stack.push(arr[i]);
+            stack.push(token); // or error out if you want strict handling
         }
     }
     return stack.join(" ");
@@ -84,14 +82,11 @@ readline.on("line", function (input) {
         readline.close();
         return;
     }
-    else {
-        inputStream.push(input);
-        var tokens = convertInputToTokens(inputStream);
-        var afterWordManipulation = handleWordsManipulation(tokens);
-        var finalResult = handleArithmetic(afterWordManipulation.split(" "));
-        if (finalResult != null) {
-            console.log(finalResult);
-        }
-        inputStream = [];
+    inputStream.push(input);
+    var tokens = convertInputToTokens(inputStream);
+    var result = evaluate(tokens);
+    if (result != null) {
+        console.log(result);
     }
+    inputStream = [];
 });
