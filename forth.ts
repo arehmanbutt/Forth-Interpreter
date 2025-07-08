@@ -3,9 +3,10 @@ const readline = require("readline").createInterface({
   output: process.stdout,
   prompt: "> ",
 });
+let globalFunctions: { [key: string]: string[] } = {};
+
 console.log("Welcome to Forth\n\nTo close the program type 'quit'\n\n");
 readline.prompt();
-
 let inputStream: string[] = [];
 
 const mathFunctions = {
@@ -26,6 +27,7 @@ const mathFunctions = {
 function convertInputToTokens(input: string[]) {
   let tokens = input.toString().trim();
   let stack = tokens.split(" ");
+  console.log("After tokenisation", stack);
   return stack;
 }
 
@@ -34,7 +36,8 @@ function convertInputToTokens(input: string[]) {
 function evaluate(tokens: string[]) {
   let stack: (string | number)[] = [];
 
-  for (let token of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    let token = tokens[i];
     if (!isNaN(Number(token))) {
       stack.push(Number(token));
     } else if (token in mathFunctions) {
@@ -70,11 +73,40 @@ function evaluate(tokens: string[]) {
         return;
       }
       stack.push(secondLast);
+    } else if (token in globalFunctions) {
+      const definitionTokens = globalFunctions[token];
+      if (definitionTokens) {
+        tokens.splice(i, 1, ...definitionTokens);
+        i--;
+      }
     } else {
       stack.push(token);
     }
   }
   return stack.join(" ");
+}
+
+function isSyntaxCorrect(tokens: string[]) {
+  // check proper syntax
+  let flag: boolean = true;
+  if (tokens[0] == ":" && tokens[tokens.length - 1] === ";") {
+    console.log("This is a word definition");
+  } else {
+    console.log("This is not a correct word definiton");
+    console.log(`The correct format is <: word-definition functionality ;>`);
+    flag = false;
+  }
+  return flag;
+}
+function addDefinitons(tokens: string[]) {
+  if (isSyntaxCorrect(tokens)) {
+    let functionality: string[] = [];
+    let newDefiniton = tokens[1];
+    for (let i = 2; i <= tokens.length - 2; i++) {
+      functionality.push(tokens[i]);
+    }
+    globalFunctions[newDefiniton] = functionality;
+  }
 }
 
 readline.on("line", (input: string) => {
@@ -84,11 +116,16 @@ readline.on("line", (input: string) => {
   }
 
   inputStream.push(input);
+  console.log(inputStream);
   let tokens = convertInputToTokens(inputStream);
-
-  let result = evaluate(tokens);
-  if (result != null) {
-    console.log(result);
+  if (tokens[0] === ":" && tokens[tokens.length - 1] === ";") {
+    addDefinitons(tokens);
+    console.log("Global Functions: ", globalFunctions);
+  } else {
+    let result = evaluate(tokens);
+    if (result != null) {
+      console.log(result);
+    }
   }
 
   inputStream = [];

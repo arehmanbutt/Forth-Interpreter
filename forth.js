@@ -1,8 +1,18 @@
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 var readline = require("readline").createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: "> ",
 });
+var globalFunctions = {};
 console.log("Welcome to Forth\n\nTo close the program type 'quit'\n\n");
 readline.prompt();
 var inputStream = [];
@@ -23,13 +33,14 @@ var mathFunctions = {
 function convertInputToTokens(input) {
     var tokens = input.toString().trim();
     var stack = tokens.split(" ");
+    console.log("After tokenisation", stack);
     return stack;
 }
 // Evaluation
 function evaluate(tokens) {
     var stack = [];
-    for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
-        var token = tokens_1[_i];
+    for (var i = 0; i < tokens.length; i++) {
+        var token = tokens[i];
         if (!isNaN(Number(token))) {
             stack.push(Number(token));
         }
@@ -71,11 +82,41 @@ function evaluate(tokens) {
             }
             stack.push(secondLast);
         }
+        else if (token in globalFunctions) {
+            var definitionTokens = globalFunctions[token];
+            if (definitionTokens) {
+                tokens.splice.apply(tokens, __spreadArray([i, 1], definitionTokens, false));
+                i--;
+            }
+        }
         else {
-            stack.push(token); // or error out if you want strict handling
+            stack.push(token);
         }
     }
     return stack.join(" ");
+}
+function isSyntaxCorrect(tokens) {
+    // check proper syntax
+    var flag = true;
+    if (tokens[0] == ":" && tokens[tokens.length - 1] === ";") {
+        console.log("This is a word definition");
+    }
+    else {
+        console.log("This is not a correct word definiton");
+        console.log("The correct format is <: word-definition functionality ;>");
+        flag = false;
+    }
+    return flag;
+}
+function addDefinitons(tokens) {
+    if (isSyntaxCorrect(tokens)) {
+        var functionality = [];
+        var newDefiniton = tokens[1];
+        for (var i = 2; i <= tokens.length - 2; i++) {
+            functionality.push(tokens[i]);
+        }
+        globalFunctions[newDefiniton] = functionality;
+    }
 }
 readline.on("line", function (input) {
     if (input === "quit") {
@@ -83,10 +124,17 @@ readline.on("line", function (input) {
         return;
     }
     inputStream.push(input);
+    console.log(inputStream);
     var tokens = convertInputToTokens(inputStream);
-    var result = evaluate(tokens);
-    if (result != null) {
-        console.log(result);
+    if (tokens[0] === ":" && tokens[tokens.length - 1] === ";") {
+        addDefinitons(tokens);
+        console.log("Global Functions: ", globalFunctions);
+    }
+    else {
+        var result = evaluate(tokens);
+        if (result != null) {
+            console.log(result);
+        }
     }
     inputStream = [];
 });
