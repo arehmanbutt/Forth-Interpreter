@@ -3,7 +3,7 @@ const readline = require("readline").createInterface({
   output: process.stdout,
   prompt: "> ",
 });
-let globalFunctions: { [key: string]: string[] } = {};
+let wordDefinitions: { [key: string]: string[] } = {};
 
 console.log("Welcome to Forth\n\nTo close the program type 'quit'\n\n");
 readline.prompt();
@@ -27,7 +27,7 @@ const mathFunctions = {
 function convertInputToTokens(input: string[]) {
   let tokens = input.toString().trim();
   let stack = tokens.split(" ");
-  console.log("After tokenisation", stack);
+  // console.log("After tokenisation", stack);
   return stack;
 }
 
@@ -73,8 +73,8 @@ function evaluate(tokens: string[]) {
         return;
       }
       stack.push(secondLast);
-    } else if (token in globalFunctions) {
-      const definitionTokens = globalFunctions[token];
+    } else if (token in wordDefinitions) {
+      const definitionTokens = wordDefinitions[token];
       if (definitionTokens) {
         tokens.splice(i, 1, ...definitionTokens);
         i--;
@@ -105,7 +105,7 @@ function addDefinitons(tokens: string[]) {
     for (let i = 2; i <= tokens.length - 2; i++) {
       functionality.push(tokens[i]);
     }
-    globalFunctions[newDefiniton] = functionality;
+    wordDefinitions[newDefiniton] = functionality;
   }
 }
 
@@ -116,11 +116,10 @@ readline.on("line", (input: string) => {
   }
 
   inputStream.push(input);
-  console.log(inputStream);
   let tokens = convertInputToTokens(inputStream);
   if (tokens[0] === ":" && tokens[tokens.length - 1] === ";") {
     addDefinitons(tokens);
-    console.log("Global Functions: ", globalFunctions);
+    console.log("Global Functions: ", wordDefinitions);
   } else {
     let result = evaluate(tokens);
     if (result != null) {
