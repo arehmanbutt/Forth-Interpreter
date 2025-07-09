@@ -1,78 +1,138 @@
-const readline = require("readline").createInterface({
+const rl = require("readline").createInterface({
   input: process.stdin,
   output: process.stdout,
   prompt: "> ",
 });
-let wordDefinitions: { [key: string]: string[] } = {};
 
 console.log("Welcome to Forth\n\nTo close the program type 'quit'\n\n");
-readline.prompt();
-let inputStream: string[] = [];
+rl.prompt();
 
-const mathFunctions = {
-  "+": function (x: number, y: number) {
-    return x + y;
-  },
-  "-": function (x: number, y: number) {
-    return x - y;
-  },
-  "*": function (x: number, y: number) {
-    return x * y;
-  },
-  "/": (x: number, y: number) => {
-    return x / y;
-  },
+const mathFunctions: { [key: string]: (x: number, y: number) => number } = {
+  "+": (x, y) => x + y,
+  "-": (x, y) => x - y,
+  "*": (x, y) => x * y,
+  "/": (x, y) => x / y,
 };
 
-function convertInputToTokens(input: string[]) {
-  let tokens = input.toString().trim();
+// Global dictionary for word definitions
+let wordDefinitions: { [key: string]: string[] } = {};
+
+function isWordDefinition(tokens: string[]): boolean {
+  return tokens[0] === ":" && tokens[tokens.length - 1] === ";";
+}
+function isWordDefinitionCorrect(tokens: string[]): boolean {
+  if (tokens.length < 2) {
+    console.log("Invalid definition: too short. Format: : name body ;");
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function addDefinition(tokens: string[]): void {
+  const word = tokens[1];
+  const body = tokens.slice(2, -1);
+  wordDefinitions[word] = body;
+}
+
+function convertInputToTokens(input: string) {
+  let tokens = input.trim();
   let stack = tokens.split(" ");
-  // console.log("After tokenisation", stack);
   return stack;
 }
 
-// Evaluation
-
-function evaluate(tokens: string[]) {
-  let stack: (string | number)[] = [];
-
-  for (let i = 0; i < tokens.length; i++) {
-    let token = tokens[i];
+function isSyntaxOkay(tokens: string[]): boolean {
+  const stack: string[] = [];
+  for (const token of tokens) {
     if (!isNaN(Number(token))) {
-      stack.push(Number(token));
+      stack.push(token);
     } else if (token in mathFunctions) {
-      let b = stack.pop();
-      let a = stack.pop();
-      if (typeof a !== "number" || typeof b !== "number") {
-        console.log("Invalid expression: not enough numeric operands.");
-        return;
+      if (stack.length < 2) {
+        console.log(`Syntax error: '${token}' needs two operands`);
+        return false;
       }
-      let result = mathFunctions[token](a, b);
-      stack.push(result);
+      const b = stack.pop();
+      const a = stack.pop();
+      if (
+        b === undefined ||
+        a === undefined ||
+        isNaN(Number(a)) ||
+        isNaN(Number(b))
+      ) {
+        console.log(`Type error: '${token}' needs two numeric operands`);
+        return false;
+      }
+      stack.push("0");
     } else if (token === "dup") {
-      let top = stack[stack.length - 1];
-      if (typeof top !== "number") {
-        console.log("Cannot dup non-number.");
-        return;
+      const top = stack[stack.length - 1];
+      if (top === undefined) {
+        console.log(`Syntax error: 'dup' needs one item`);
+        return false;
       }
       stack.push(top);
     } else if (token === "swap") {
-      let b = stack.pop();
-      let a = stack.pop();
-      if (a === undefined || b === undefined) {
-        console.log("swap needs two elements.");
-        return;
+      if (stack.length < 2) {
+        console.log(`Syntax error: 'swap' needs two items`);
+        return false;
       }
+      const b = stack.pop();
+      const a = stack.pop();
+      if (a === undefined || b === undefined) return false;
       stack.push(b, a);
+    } else if (token === "drop") {
+      if (stack.length < 1) {
+        console.log(`Syntax error: 'drop' needs one item`);
+        return false;
+      }
+      stack.pop();
+    } else if (token === "over") {
+      if (stack.length < 2) {
+        console.log(`Syntax error: 'over' needs two items`);
+        return false;
+      }
+      const secondLast = stack[stack.length - 2];
+      if (secondLast === undefined) return false;
+      stack.push(secondLast);
+    } else {
+      console.log(`Unknown word: '${token}'`);
+      return false;
+    }
+  }
+
+  return true;
+}
+function evaluate(tokens: string[]): string {
+  const stack: string[] = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+
+    if (!isNaN(Number(token))) {
+      stack.push(token);
+    } else if (token in mathFunctions) {
+      const second = stack.pop();
+      const first = stack.pop();
+
+      if (first === undefined || second === undefined) continue;
+
+      const a = Number(first);
+      const b = Number(second);
+      const result = mathFunctions[token](a, b);
+      stack.push(result.toString());
+    } else if (token === "dup") {
+      const top = stack[stack.length - 1];
+      if (top !== undefined) stack.push(top);
+    } else if (token === "swap") {
+      const second = stack.pop();
+      const first = stack.pop();
+      if (first !== undefined && second !== undefined) {
+        stack.push(second, first);
+      }
     } else if (token === "drop") {
       stack.pop();
     } else if (token === "over") {
-      let secondLast = stack[stack.length - 2];
-      if (secondLast === undefined) {
-        console.log("swap needs two elements.");
-        return;
-      }
-      stack.push(secondLast);
+      const secondLast = stack[stack.length - 2];
+      if (secondLast !== undefined) stack.push(secondLast);
     } else if (token in wordDefinitions) {
       const definitionTokens = wordDefinitions[token];
       if (definitionTokens) {
@@ -80,52 +140,35 @@ function evaluate(tokens: string[]) {
         i--;
       }
     } else {
-      stack.push(token);
+      stack.push(token); // push literal or unknown token
     }
   }
+
   return stack.join(" ");
 }
 
-function isSyntaxCorrect(tokens: string[]) {
-  // check proper syntax
-  let flag: boolean = true;
-  if (tokens[0] == ":" && tokens[tokens.length - 1] === ";") {
-    console.log("This is a word definition");
-  } else {
-    console.log("This is not a correct word definiton");
-    console.log(`The correct format is <: word-definition functionality ;>`);
-    flag = false;
-  }
-  return flag;
-}
-function addDefinitons(tokens: string[]) {
-  if (isSyntaxCorrect(tokens)) {
-    let functionality: string[] = [];
-    let newDefiniton = tokens[1];
-    for (let i = 2; i <= tokens.length - 2; i++) {
-      functionality.push(tokens[i]);
-    }
-    wordDefinitions[newDefiniton] = functionality;
-  }
-}
-
-readline.on("line", (input: string) => {
+rl.on("line", (input: string) => {
   if (input === "quit") {
-    readline.close();
+    rl.close();
     return;
   }
-
-  inputStream.push(input);
-  let tokens = convertInputToTokens(inputStream);
-  if (tokens[0] === ":" && tokens[tokens.length - 1] === ";") {
-    addDefinitons(tokens);
-    console.log("Global Functions: ", wordDefinitions);
-  } else {
-    let result = evaluate(tokens);
-    if (result != null) {
-      console.log(result);
+  const tokens = convertInputToTokens(input);
+  if (isWordDefinition(tokens)) {
+    const word = tokens[1];
+    const body = tokens.slice(2, -1);
+    console.log("Body is: ", body);
+    if (isWordDefinitionCorrect(tokens)) {
+      addDefinition(tokens);
+      console.log(`Defined new word: '${word}'`);
+    } else {
+      console.log("Invalid word definition. Format: : name body ;");
     }
+  } else if (isSyntaxOkay(tokens)) {
+    const result = evaluate(tokens);
+    console.log(result);
+  } else {
+    console.log("Syntax check failed. Expression not evaluated.");
   }
 
-  inputStream = [];
+  rl.prompt();
 });
