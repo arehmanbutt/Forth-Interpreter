@@ -51,6 +51,13 @@ function isSyntaxOkay(tokens) {
         if (!isNaN(Number(token))) {
             stack.push(token);
         }
+        else if (token != "swap" &&
+            token != "dup" &&
+            token != "over" &&
+            token != "drop" &&
+            !(token in mathFunctions)) {
+            stack.push(token);
+        }
         else if (token in mathFunctions) {
             if (stack.length < 2) {
                 console.log("Syntax error: '".concat(token, "' needs two operands"));
@@ -115,6 +122,13 @@ function evaluate(tokens) {
     for (var i = 0; i < tokens.length; i++) {
         var token = tokens[i];
         if (!isNaN(Number(token))) {
+            stack.push(token);
+        }
+        else if (token != "swap" &&
+            token != "dup" &&
+            token != "over" &&
+            token != "drop" &&
+            !(token in mathFunctions)) {
             stack.push(token);
         }
         else if (token in mathFunctions) {

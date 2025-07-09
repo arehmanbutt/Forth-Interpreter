@@ -20,13 +20,17 @@ let wordDefinitions: { [key: string]: string[] } = {};
 function isWordDefinition(tokens: string[]): boolean {
   return tokens[0] === ":" && tokens[tokens.length - 1] === ";";
 }
-function isWordDefinitionCorrect(body: string[]): boolean {
-  if (body.length < 2) {
+function isWordDefinitionCorrect(tokens: string[]): boolean {
+  const word = tokens[1];
+  const body = tokens.slice(2, -1);
+  if (body.length < 1) {
     console.log("Invalid definition: Format: : name body ;");
     return false;
-  } else {
-    return true;
+  } else if (word in wordDefinitions) {
+    console.log("This word definition already exists");
+    return false;
   }
+  return true;
 }
 
 function addDefinition(tokens: string[]): void {
@@ -122,7 +126,8 @@ function evaluate(tokens: string[]): string {
       token != "dup" &&
       token != "over" &&
       token != "drop" &&
-      !(token in mathFunctions)
+      !(token in mathFunctions) &&
+      !(token in wordDefinitions)
     ) {
       stack.push(token);
     } else if (token in mathFunctions) {
@@ -170,11 +175,9 @@ rl.on("line", (input: string) => {
   }
   const tokens = convertInputToTokens(input);
   if (isWordDefinition(tokens)) {
-    const word = tokens[1];
-    const body = tokens.slice(2, -1);
-    if (isWordDefinitionCorrect(body)) {
+    if (isWordDefinitionCorrect(tokens)) {
       addDefinition(tokens);
-      console.log(`Defined new word: '${word}'`);
+      console.log(`Defined new word: '${tokens[1]}'`);
     }
   } else if (isSyntaxOkay(tokens)) {
     const result = evaluate(tokens);
