@@ -4,7 +4,7 @@ const rl = require("readline").createInterface({
   prompt: "> ",
 });
 
-console.log("Welcome to Forth\n\nTo close the program type 'quit'\n\n");
+console.log("\nWelcome to Forth\n\nTo close the program type 'quit'\n\n");
 rl.prompt();
 
 const mathFunctions: { [key: string]: (x: number, y: number) => number } = {
@@ -20,9 +20,9 @@ let wordDefinitions: { [key: string]: string[] } = {};
 function isWordDefinition(tokens: string[]): boolean {
   return tokens[0] === ":" && tokens[tokens.length - 1] === ";";
 }
-function isWordDefinitionCorrect(tokens: string[]): boolean {
-  if (tokens.length < 2) {
-    console.log("Invalid definition: too short. Format: : name body ;");
+function isWordDefinitionCorrect(body: string[]): boolean {
+  if (body.length < 2) {
+    console.log("Invalid definition: Format: : name body ;");
     return false;
   } else {
     return true;
@@ -45,6 +45,14 @@ function isSyntaxOkay(tokens: string[]): boolean {
   const stack: string[] = [];
   for (const token of tokens) {
     if (!isNaN(Number(token))) {
+      stack.push(token);
+    } else if (
+      token != "swap" &&
+      token != "dup" &&
+      token != "over" &&
+      token != "drop" &&
+      !(token in mathFunctions)
+    ) {
       stack.push(token);
     } else if (token in mathFunctions) {
       if (stack.length < 2) {
@@ -109,6 +117,14 @@ function evaluate(tokens: string[]): string {
 
     if (!isNaN(Number(token))) {
       stack.push(token);
+    } else if (
+      token != "swap" &&
+      token != "dup" &&
+      token != "over" &&
+      token != "drop" &&
+      !(token in mathFunctions)
+    ) {
+      stack.push(token);
     } else if (token in mathFunctions) {
       const second = stack.pop();
       const first = stack.pop();
@@ -156,12 +172,9 @@ rl.on("line", (input: string) => {
   if (isWordDefinition(tokens)) {
     const word = tokens[1];
     const body = tokens.slice(2, -1);
-    console.log("Body is: ", body);
-    if (isWordDefinitionCorrect(tokens)) {
+    if (isWordDefinitionCorrect(body)) {
       addDefinition(tokens);
       console.log(`Defined new word: '${word}'`);
-    } else {
-      console.log("Invalid word definition. Format: : name body ;");
     }
   } else if (isSyntaxOkay(tokens)) {
     const result = evaluate(tokens);

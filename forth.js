@@ -12,7 +12,7 @@ var rl = require("readline").createInterface({
     output: process.stdout,
     prompt: "> ",
 });
-console.log("Welcome to Forth\n\nTo close the program type 'quit'\n\n");
+console.log("\nWelcome to Forth\n\nTo close the program type 'quit'\n\n");
 rl.prompt();
 var mathFunctions = {
     "+": function (x, y) { return x + y; },
@@ -22,6 +22,23 @@ var mathFunctions = {
 };
 // Global dictionary for word definitions
 var wordDefinitions = {};
+function isWordDefinition(tokens) {
+    return tokens[0] === ":" && tokens[tokens.length - 1] === ";";
+}
+function isWordDefinitionCorrect(body) {
+    if (body.length < 2) {
+        console.log("Invalid definition: Format: : name body ;");
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+function addDefinition(tokens) {
+    var word = tokens[1];
+    var body = tokens.slice(2, -1);
+    wordDefinitions[word] = body;
+}
 function convertInputToTokens(input) {
     var tokens = input.trim();
     var stack = tokens.split(" ");
@@ -86,13 +103,6 @@ function isSyntaxOkay(tokens) {
                 return false;
             stack.push(secondLast);
         }
-        else if (token in wordDefinitions) {
-            var definition = wordDefinitions[token];
-            // if (!isSyntaxOkay(definition)) {
-            //   console.log(`Syntax error in custom word '${token}'`);
-            //   return false;
-            // }
-        }
         else {
             console.log("Unknown word: '".concat(token, "'"));
             return false;
@@ -150,24 +160,6 @@ function evaluate(tokens) {
     }
     return stack.join(" ");
 }
-// ✅ Handle word definitions
-function isWordDefinition(tokens) {
-    return tokens[0] === ":" && tokens[tokens.length - 1] === ";";
-}
-function isWordDefinitionCorrect(tokens) {
-    if (tokens.length < 2) {
-        console.log("Invalid definition: too short. Format: : name body ;");
-        return false;
-    }
-    else {
-        return true;
-    }
-}
-function addDefinition(tokens) {
-    var word = tokens[1];
-    var body = tokens.slice(2, -1);
-    wordDefinitions[word] = body;
-}
 rl.on("line", function (input) {
     if (input === "quit") {
         rl.close();
@@ -178,12 +170,9 @@ rl.on("line", function (input) {
         var word = tokens[1];
         var body = tokens.slice(2, -1);
         console.log("Body is: ", body);
-        if (isWordDefinitionCorrect(tokens)) {
+        if (isWordDefinitionCorrect(body)) {
             addDefinition(tokens);
             console.log("Defined new word: '".concat(word, "'"));
-        }
-        else {
-            console.log("Invalid word definition. Format: : name body ;");
         }
     }
     else if (isSyntaxOkay(tokens)) {
