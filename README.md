@@ -30,6 +30,7 @@ This is a simple yet extensible interpreter for a subset of the [Forth programmi
    ```bash
    npm init -y
    npm install typescript @types/node --save-dev
+   npm install tsx
    ```
 
 3. **Create `tsconfig.json`** (if needed):
@@ -48,7 +49,7 @@ This is a simple yet extensible interpreter for a subset of the [Forth programmi
 4. **Run the interpreter**:
 
    ```bash
-   npx ts-node forth.ts
+   tsx forth.ts
    ```
 
 ---
