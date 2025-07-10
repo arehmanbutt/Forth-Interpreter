@@ -21,7 +21,7 @@ This is a simple yet extensible interpreter for a subset of the [Forth programmi
 1. **Clone the repo** (or create a new `.ts` file with the provided code):
 
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/arehmanbutt/Forth-Interpreter
    cd forth-interpreter
    ```
 
