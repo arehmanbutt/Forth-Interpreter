@@ -28,7 +28,7 @@ function isWordDefinition(tokens) {
 function isWordDefinitionCorrect(tokens) {
     var word = tokens[1];
     var body = tokens.slice(2, -1);
-    if (body.length < 1) {
+    if (!isLengthCorrect(body, 1)) {
         console.log("Invalid definition: Format: : name body ;");
         return false;
     }
@@ -114,10 +114,8 @@ function parser(tokens) {
     var stack = [];
     for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
         var token = tokens_1[_i];
-        if (!isNaN(Number(token))) {
-            stack.push(token);
-        }
-        else if (!(token in StackOperations) && !(token in mathFunctions)) {
+        if (!isNaN(Number(token)) ||
+            (!(token in StackOperations) && !(token in mathFunctions))) {
             stack.push(token);
         }
         else if (token in mathFunctions && isLengthCorrect(stack, 2)) {
@@ -132,10 +130,8 @@ function parser(tokens) {
             }
             stack.push("0");
         }
-        else if (token in StackOperations) {
-            if (!StackOperations[token].validate(stack)) {
-                return false;
-            }
+        else if (token in StackOperations &&
+            StackOperations[token].validate(stack)) {
             StackOperations[token].execute(stack);
         }
         else {
@@ -157,13 +153,9 @@ function evaluator(tokens) {
             stack.push(token);
         }
         else if (token in mathFunctions) {
-            var second = stack.pop();
-            var first = stack.pop();
-            if (first === undefined || second === undefined)
-                continue;
-            var a = Number(first);
-            var b = Number(second);
-            var result = mathFunctions[token](a, b).toString();
+            var second = Number(stack.pop());
+            var first = Number(stack.pop());
+            var result = mathFunctions[token](first, second).toString();
             stack.push(result);
         }
         else if (token in StackOperations) {

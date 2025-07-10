@@ -23,7 +23,7 @@ function isWordDefinition(tokens: Stack): boolean {
 function isWordDefinitionCorrect(tokens: Stack): boolean {
   const word = tokens[1];
   const body = tokens.slice(2, -1);
-  if (body.length < 1) {
+  if (!isLengthCorrect(body, 1)) {
     console.log("Invalid definition: Format: : name body ;");
     return false;
   } else if (word in wordDefinitions) {
