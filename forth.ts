@@ -14,13 +14,13 @@ const mathFunctions: { [key: string]: (x: number, y: number) => number } = {
   "/": (x, y) => x / y,
 };
 
-// Global dictionary for word definitions
-let wordDefinitions: { [key: string]: string[] } = {};
+// Dictionary for word definitions
+let wordDefinitions: { [key: string]: Stack } = {};
 
-function isWordDefinition(tokens: string[]): boolean {
+function isWordDefinition(tokens: Stack): boolean {
   return tokens[0] === ":" && tokens[tokens.length - 1] === ";";
 }
-function isWordDefinitionCorrect(tokens: string[]): boolean {
+function isWordDefinitionCorrect(tokens: Stack): boolean {
   const word = tokens[1];
   const body = tokens.slice(2, -1);
   if (body.length < 1) {
@@ -29,37 +29,101 @@ function isWordDefinitionCorrect(tokens: string[]): boolean {
   } else if (word in wordDefinitions) {
     console.log("This word definition already exists");
     return false;
+  } else {
+    for (let ch of word) {
+      if (ch < "a" || ch > "z") {
+        console.log(
+          "Invalid word name: must contain only lowercase letters (a-z)"
+        );
+        return false;
+      }
+    }
   }
   return true;
 }
 
-function addDefinition(tokens: string[]): void {
+function addDefinition(tokens: Stack): void {
   const word = tokens[1];
   const body = tokens.slice(2, -1);
   wordDefinitions[word] = body;
 }
 
-function convertInputToTokens(input: string) {
+type Stack = string[];
+
+const StackOperations: {
+  [key: string]: {
+    validate: (stack: Stack) => boolean;
+    execute: (stack: Stack) => void;
+  };
+} = {
+  dup: {
+    validate: (stack) => {
+      return isLengthCorrect(stack, 1);
+    },
+    execute: (stack) => {
+      const top = stack[stack.length - 1];
+      if (top !== undefined) {
+        stack.push(top);
+      }
+    },
+  },
+  swap: {
+    validate: (stack) => {
+      return isLengthCorrect(stack, 2);
+    },
+    execute: (stack) => {
+      const second = stack.pop();
+      const first = stack.pop();
+      if (first !== undefined && second !== undefined) {
+        stack.push(second, first);
+      }
+    },
+  },
+  drop: {
+    validate: (stack) => {
+      return isLengthCorrect(stack, 1);
+    },
+    execute: (stack) => {
+      stack.pop();
+    },
+  },
+  over: {
+    validate: (stack) => {
+      return isLengthCorrect(stack, 2);
+    },
+    execute: (stack) => {
+      const secondLast = stack[stack.length - 2];
+      if (secondLast !== undefined) {
+        stack.push(secondLast);
+      }
+    },
+  },
+};
+
+function isLengthCorrect(stack: Stack, size: number): boolean {
+  if (stack.length < size) {
+    console.log(`This operation needs ${size} operands`);
+    return false;
+  }
+  return true;
+}
+
+// Lexer: convertInputToTokens
+function lexer(input: string) {
   let tokens = input.trim();
   let stack = tokens.split(" ");
   return stack;
 }
-
-function isSyntaxOkay(tokens: string[]): boolean {
-  const stack: string[] = [];
+// Parser: isSyntaxOkay
+function parser(tokens: Stack): boolean {
+  const stack: Stack = [];
   for (const token of tokens) {
     if (!isNaN(Number(token))) {
       stack.push(token);
-    } else if (
-      token != "swap" &&
-      token != "dup" &&
-      token != "over" &&
-      token != "drop" &&
-      !(token in mathFunctions)
-    ) {
+    } else if (!(token in StackOperations) && !(token in mathFunctions)) {
       stack.push(token);
     } else if (token in mathFunctions) {
-      if (stack.length < 2) {
+      if (!isLengthCorrect(stack, 2)) {
         console.log(`Syntax error: '${token}' needs two operands`);
         return false;
       }
@@ -75,57 +139,28 @@ function isSyntaxOkay(tokens: string[]): boolean {
         return false;
       }
       stack.push("0");
-    } else if (token === "dup") {
-      const top = stack[stack.length - 1];
-      if (top === undefined) {
-        console.log(`Syntax error: 'dup' needs one item`);
+    } else if (token in StackOperations) {
+      if (!StackOperations[token].validate(stack)) {
         return false;
       }
-      stack.push(top);
-    } else if (token === "swap") {
-      if (stack.length < 2) {
-        console.log(`Syntax error: 'swap' needs two items`);
-        return false;
-      }
-      const b = stack.pop();
-      const a = stack.pop();
-      if (a === undefined || b === undefined) return false;
-      stack.push(b, a);
-    } else if (token === "drop") {
-      if (stack.length < 1) {
-        console.log(`Syntax error: 'drop' needs one item`);
-        return false;
-      }
-      stack.pop();
-    } else if (token === "over") {
-      if (stack.length < 2) {
-        console.log(`Syntax error: 'over' needs two items`);
-        return false;
-      }
-      const secondLast = stack[stack.length - 2];
-      if (secondLast === undefined) return false;
-      stack.push(secondLast);
+      StackOperations[token].execute(stack);
     } else {
       console.log(`Unknown word: '${token}'`);
       return false;
     }
   }
-
   return true;
 }
-function evaluate(tokens: string[]): string {
-  const stack: string[] = [];
+
+// Evaluator
+function evaluator(tokens: Stack): string {
+  const stack: Stack = [];
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
-
-    if (!isNaN(Number(token))) {
-      stack.push(token);
-    } else if (
-      token != "swap" &&
-      token != "dup" &&
-      token != "over" &&
-      token != "drop" &&
+    if (
+      !isNaN(Number(token)) &&
+      !(token in StackOperations) &&
       !(token in mathFunctions) &&
       !(token in wordDefinitions)
     ) {
@@ -133,27 +168,17 @@ function evaluate(tokens: string[]): string {
     } else if (token in mathFunctions) {
       const second = stack.pop();
       const first = stack.pop();
-
       if (first === undefined || second === undefined) continue;
-
       const a = Number(first);
       const b = Number(second);
-      const result = mathFunctions[token](a, b);
-      stack.push(result.toString());
-    } else if (token === "dup") {
-      const top = stack[stack.length - 1];
-      if (top !== undefined) stack.push(top);
-    } else if (token === "swap") {
-      const second = stack.pop();
-      const first = stack.pop();
-      if (first !== undefined && second !== undefined) {
-        stack.push(second, first);
+      const result = mathFunctions[token](a, b).toString();
+      stack.push(result);
+    } else if (token in StackOperations) {
+      if (StackOperations[token].validate(stack)) {
+        StackOperations[token].execute(stack);
+      } else {
+        return "Logical Errror";
       }
-    } else if (token === "drop") {
-      stack.pop();
-    } else if (token === "over") {
-      const secondLast = stack[stack.length - 2];
-      if (secondLast !== undefined) stack.push(secondLast);
     } else if (token in wordDefinitions) {
       const definitionTokens = wordDefinitions[token];
       if (definitionTokens) {
@@ -161,10 +186,9 @@ function evaluate(tokens: string[]): string {
         i--;
       }
     } else {
-      stack.push(token); // push literal or unknown token
+      stack.push(token);
     }
   }
-
   return stack.join(" ");
 }
 
@@ -173,18 +197,18 @@ rl.on("line", (input: string) => {
     rl.close();
     return;
   }
-  const tokens = convertInputToTokens(input);
+
+  const tokens = lexer(input);
   if (isWordDefinition(tokens)) {
     if (isWordDefinitionCorrect(tokens)) {
       addDefinition(tokens);
       console.log(`Defined new word: '${tokens[1]}'`);
     }
-  } else if (isSyntaxOkay(tokens)) {
-    const result = evaluate(tokens);
+  } else if (parser(tokens)) {
+    const result = evaluator(tokens);
     console.log(result);
   } else {
     console.log("Syntax check failed. Expression not evaluated.");
   }
-
   rl.prompt();
 });
