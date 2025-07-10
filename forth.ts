@@ -108,13 +108,12 @@ function isLengthCorrect(stack: Stack, size: number): boolean {
   return true;
 }
 
-// Lexer: convertInputToTokens
-function lexer(input: string) {
-  let tokens = input.trim();
-  let stack = tokens.split(" ");
-  return stack;
+function lexer(input: string): string[] {
+  const trimmed = input.trim();
+  if (trimmed === "") return [];
+  return trimmed.split(/\s+/);
 }
-// Parser: isSyntaxOkay
+
 function parser(tokens: Stack): boolean {
   const stack: Stack = [];
   for (const token of tokens) {
@@ -185,12 +184,7 @@ function evaluator(tokens: Stack): string {
   }
   return stack.join(" ");
 }
-
-rl.on("line", (input: string) => {
-  if (input === "quit") {
-    rl.close();
-    return;
-  }
+function Interpreter(input: string) {
   const tokens = lexer(input);
   if (isWordDefinition(tokens)) {
     if (isWordDefinitionCorrect(tokens)) {
@@ -203,5 +197,13 @@ rl.on("line", (input: string) => {
   } else {
     console.log("Syntax check failed. Expression not evaluated.");
   }
+}
+
+rl.on("line", (input: string) => {
+  if (input === "quit") {
+    rl.close();
+    return;
+  }
+  Interpreter(input);
   rl.prompt();
 });
