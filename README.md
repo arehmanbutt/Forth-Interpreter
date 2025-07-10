@@ -2,7 +2,7 @@
 
 This is a simple yet extensible interpreter for a subset of the [Forth programming language](https://en.wikipedia.org/wiki/Forth_%28programming_language%29) built in **TypeScript**. It supports arithmetic operations, stack manipulation, and user-defined words.
 
-> 📚 This project is built as part of the [CarbonTeq DevPortal – Build Your Own X](http://dev-portal.carbonteq.com/build-your-own-x/general/forth_interpreter#simplified-grammar) series.
+> 📚 This project is built as part of the [CarbonTeq DevPortal – Build Your Own X](https://dev-portal.carbonteq.com/build-your-own-x/general/forth_interpreter) series.
 
 ---
 
