@@ -118,9 +118,10 @@ function lexer(input: string) {
 function parser(tokens: Stack): boolean {
   const stack: Stack = [];
   for (const token of tokens) {
-    if (!isNaN(Number(token))) {
-      stack.push(token);
-    } else if (!(token in StackOperations) && !(token in mathFunctions)) {
+    if (
+      !isNaN(Number(token)) ||
+      (!(token in StackOperations) && !(token in mathFunctions))
+    ) {
       stack.push(token);
     } else if (token in mathFunctions && isLengthCorrect(stack, 2)) {
       const b = stack.pop();
@@ -135,10 +136,10 @@ function parser(tokens: Stack): boolean {
         return false;
       }
       stack.push("0");
-    } else if (token in StackOperations) {
-      if (!StackOperations[token].validate(stack)) {
-        return false;
-      }
+    } else if (
+      token in StackOperations &&
+      StackOperations[token].validate(stack)
+    ) {
       StackOperations[token].execute(stack);
     } else {
       console.log(`Unknown word: '${token}'`);
@@ -162,12 +163,9 @@ function evaluator(tokens: Stack): string {
     ) {
       stack.push(token);
     } else if (token in mathFunctions) {
-      const second = stack.pop();
-      const first = stack.pop();
-      if (first === undefined || second === undefined) continue;
-      const a: number = Number(first);
-      const b: number = Number(second);
-      const result = mathFunctions[token](a, b).toString();
+      const second = Number(stack.pop());
+      const first = Number(stack.pop());
+      const result = mathFunctions[token](first, second).toString();
       stack.push(result);
     } else if (token in StackOperations) {
       if (StackOperations[token].validate(stack)) {
