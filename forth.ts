@@ -122,11 +122,7 @@ function parser(tokens: Stack): boolean {
       stack.push(token);
     } else if (!(token in StackOperations) && !(token in mathFunctions)) {
       stack.push(token);
-    } else if (token in mathFunctions) {
-      if (!isLengthCorrect(stack, 2)) {
-        console.log(`Syntax error: '${token}' needs two operands`);
-        return false;
-      }
+    } else if (token in mathFunctions && isLengthCorrect(stack, 2)) {
       const b = stack.pop();
       const a = stack.pop();
       if (
@@ -169,8 +165,8 @@ function evaluator(tokens: Stack): string {
       const second = stack.pop();
       const first = stack.pop();
       if (first === undefined || second === undefined) continue;
-      const a = Number(first);
-      const b = Number(second);
+      const a: number = Number(first);
+      const b: number = Number(second);
       const result = mathFunctions[token](a, b).toString();
       stack.push(result);
     } else if (token in StackOperations) {

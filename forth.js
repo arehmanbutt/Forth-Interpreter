@@ -20,49 +20,107 @@ var mathFunctions = {
     "*": function (x, y) { return x * y; },
     "/": function (x, y) { return x / y; },
 };
-// Global dictionary for word definitions
+// Dictionary for word definitions
 var wordDefinitions = {};
 function isWordDefinition(tokens) {
     return tokens[0] === ":" && tokens[tokens.length - 1] === ";";
 }
-function isWordDefinitionCorrect(body) {
-    if (body.length < 2) {
+function isWordDefinitionCorrect(tokens) {
+    var word = tokens[1];
+    var body = tokens.slice(2, -1);
+    if (body.length < 1) {
         console.log("Invalid definition: Format: : name body ;");
         return false;
     }
-    else {
-        return true;
+    else if (word in wordDefinitions) {
+        console.log("This word definition already exists");
+        return false;
     }
+    else {
+        for (var _i = 0, word_1 = word; _i < word_1.length; _i++) {
+            var ch = word_1[_i];
+            if (ch < "a" || ch > "z") {
+                console.log("Invalid word name: must contain only lowercase letters (a-z)");
+                return false;
+            }
+        }
+    }
+    return true;
 }
 function addDefinition(tokens) {
     var word = tokens[1];
     var body = tokens.slice(2, -1);
     wordDefinitions[word] = body;
 }
-function convertInputToTokens(input) {
+var StackOperations = {
+    dup: {
+        validate: function (stack) {
+            return isLengthCorrect(stack, 1);
+        },
+        execute: function (stack) {
+            var top = stack[stack.length - 1];
+            if (top !== undefined) {
+                stack.push(top);
+            }
+        },
+    },
+    swap: {
+        validate: function (stack) {
+            return isLengthCorrect(stack, 2);
+        },
+        execute: function (stack) {
+            var second = stack.pop();
+            var first = stack.pop();
+            if (first !== undefined && second !== undefined) {
+                stack.push(second, first);
+            }
+        },
+    },
+    drop: {
+        validate: function (stack) {
+            return isLengthCorrect(stack, 1);
+        },
+        execute: function (stack) {
+            stack.pop();
+        },
+    },
+    over: {
+        validate: function (stack) {
+            return isLengthCorrect(stack, 2);
+        },
+        execute: function (stack) {
+            var secondLast = stack[stack.length - 2];
+            if (secondLast !== undefined) {
+                stack.push(secondLast);
+            }
+        },
+    },
+};
+function isLengthCorrect(stack, size) {
+    if (stack.length < size) {
+        console.log("This operation needs ".concat(size, " operands"));
+        return false;
+    }
+    return true;
+}
+// Lexer: convertInputToTokens
+function lexer(input) {
     var tokens = input.trim();
     var stack = tokens.split(" ");
     return stack;
 }
-function isSyntaxOkay(tokens) {
+// Parser: isSyntaxOkay
+function parser(tokens) {
     var stack = [];
     for (var _i = 0, tokens_1 = tokens; _i < tokens_1.length; _i++) {
         var token = tokens_1[_i];
         if (!isNaN(Number(token))) {
             stack.push(token);
         }
-        else if (token != "swap" &&
-            token != "dup" &&
-            token != "over" &&
-            token != "drop" &&
-            !(token in mathFunctions)) {
+        else if (!(token in StackOperations) && !(token in mathFunctions)) {
             stack.push(token);
         }
-        else if (token in mathFunctions) {
-            if (stack.length < 2) {
-                console.log("Syntax error: '".concat(token, "' needs two operands"));
-                return false;
-            }
+        else if (token in mathFunctions && isLengthCorrect(stack, 2)) {
             var b = stack.pop();
             var a = stack.pop();
             if (b === undefined ||
@@ -74,41 +132,11 @@ function isSyntaxOkay(tokens) {
             }
             stack.push("0");
         }
-        else if (token === "dup") {
-            var top_1 = stack[stack.length - 1];
-            if (top_1 === undefined) {
-                console.log("Syntax error: 'dup' needs one item");
+        else if (token in StackOperations) {
+            if (!StackOperations[token].validate(stack)) {
                 return false;
             }
-            stack.push(top_1);
-        }
-        else if (token === "swap") {
-            if (stack.length < 2) {
-                console.log("Syntax error: 'swap' needs two items");
-                return false;
-            }
-            var b = stack.pop();
-            var a = stack.pop();
-            if (a === undefined || b === undefined)
-                return false;
-            stack.push(b, a);
-        }
-        else if (token === "drop") {
-            if (stack.length < 1) {
-                console.log("Syntax error: 'drop' needs one item");
-                return false;
-            }
-            stack.pop();
-        }
-        else if (token === "over") {
-            if (stack.length < 2) {
-                console.log("Syntax error: 'over' needs two items");
-                return false;
-            }
-            var secondLast = stack[stack.length - 2];
-            if (secondLast === undefined)
-                return false;
-            stack.push(secondLast);
+            StackOperations[token].execute(stack);
         }
         else {
             console.log("Unknown word: '".concat(token, "'"));
@@ -117,18 +145,15 @@ function isSyntaxOkay(tokens) {
     }
     return true;
 }
-function evaluate(tokens) {
+// Evaluator
+function evaluator(tokens) {
     var stack = [];
     for (var i = 0; i < tokens.length; i++) {
         var token = tokens[i];
-        if (!isNaN(Number(token))) {
-            stack.push(token);
-        }
-        else if (token != "swap" &&
-            token != "dup" &&
-            token != "over" &&
-            token != "drop" &&
-            !(token in mathFunctions)) {
+        if (!isNaN(Number(token)) &&
+            !(token in StackOperations) &&
+            !(token in mathFunctions) &&
+            !(token in wordDefinitions)) {
             stack.push(token);
         }
         else if (token in mathFunctions) {
@@ -138,28 +163,16 @@ function evaluate(tokens) {
                 continue;
             var a = Number(first);
             var b = Number(second);
-            var result = mathFunctions[token](a, b);
-            stack.push(result.toString());
+            var result = mathFunctions[token](a, b).toString();
+            stack.push(result);
         }
-        else if (token === "dup") {
-            var top_2 = stack[stack.length - 1];
-            if (top_2 !== undefined)
-                stack.push(top_2);
-        }
-        else if (token === "swap") {
-            var second = stack.pop();
-            var first = stack.pop();
-            if (first !== undefined && second !== undefined) {
-                stack.push(second, first);
+        else if (token in StackOperations) {
+            if (StackOperations[token].validate(stack)) {
+                StackOperations[token].execute(stack);
             }
-        }
-        else if (token === "drop") {
-            stack.pop();
-        }
-        else if (token === "over") {
-            var secondLast = stack[stack.length - 2];
-            if (secondLast !== undefined)
-                stack.push(secondLast);
+            else {
+                return "Logical Errror";
+            }
         }
         else if (token in wordDefinitions) {
             var definitionTokens = wordDefinitions[token];
@@ -169,7 +182,7 @@ function evaluate(tokens) {
             }
         }
         else {
-            stack.push(token); // push literal or unknown token
+            stack.push(token);
         }
     }
     return stack.join(" ");
@@ -179,18 +192,15 @@ rl.on("line", function (input) {
         rl.close();
         return;
     }
-    var tokens = convertInputToTokens(input);
+    var tokens = lexer(input);
     if (isWordDefinition(tokens)) {
-        var word = tokens[1];
-        var body = tokens.slice(2, -1);
-        console.log("Body is: ", body);
-        if (isWordDefinitionCorrect(body)) {
+        if (isWordDefinitionCorrect(tokens)) {
             addDefinition(tokens);
-            console.log("Defined new word: '".concat(word, "'"));
+            console.log("Defined new word: '".concat(tokens[1], "'"));
         }
     }
-    else if (isSyntaxOkay(tokens)) {
-        var result = evaluate(tokens);
+    else if (parser(tokens)) {
+        var result = evaluator(tokens);
         console.log(result);
     }
     else {
