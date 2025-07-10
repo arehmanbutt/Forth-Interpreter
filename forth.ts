@@ -197,7 +197,6 @@ rl.on("line", (input: string) => {
     rl.close();
     return;
   }
-
   const tokens = lexer(input);
   if (isWordDefinition(tokens)) {
     if (isWordDefinitionCorrect(tokens)) {
