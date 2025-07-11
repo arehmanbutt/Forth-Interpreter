@@ -148,7 +148,6 @@ function parser(tokens: Stack): boolean {
   return true;
 }
 
-// Evaluator
 function evaluator(tokens: Stack): string {
   const stack: Stack = [];
 
