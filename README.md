@@ -164,5 +164,3 @@ Feel free to fork this and add support for further features in Forth Programming
 ### 🧑‍💻 Author
 
 **Abdul Rehman**
-
-Software Engineering Intern at CarbonTeq
